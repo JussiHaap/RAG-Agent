@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Recipe Information Agent</title>
+
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body {
+
+            margin: 0;
+
+            padding: 0;
+
+            background: #f3f3f3;
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            color: #111;
+        }
+
+
+        .container {
+
+            width: 92%;
+
+            max-width: 1100px;
+
+            margin:
+                20px
+                auto
+                50px
+                auto;
+        }
+
+
+        h1 {
+
+            margin:
+                0
+                0
+                5px
+                0;
+
+            font-size: 32px;
+        }
+
+
+        .subtitle {
+
+            margin:
+                0
+                0
+                30px
+                0;
+
+            color: #666;
+
+            font-size: 17px;
+        }
+
+
+        /* =================================================
+           QUESTION AREA
+        ================================================= */
+
+        .question-row {
+
+            display: flex;
+
+            gap: 10px;
+
+            margin-bottom: 16px;
+        }
+
+
+        .question-input {
+
+            flex: 1;
+
+            min-width: 0;
+
+            padding:
+                14px
+                16px;
+
+            border:
+                1px
+                solid
+                #ccc;
+
+            border-radius: 6px;
+
+            font-size: 17px;
+
+            background: white;
+        }
+
+
+        .ask-button {
+
+            padding:
+                0
+                24px;
+
+            border: none;
+
+            border-radius: 6px;
+
+            background: #f0f0f0;
+
+            font-size: 17px;
+
+            cursor: pointer;
+        }
+
+
+        .ask-button:hover {
+
+            background: #e4e4e4;
+        }
+
+
+        .ask-button:disabled {
+
+            cursor: wait;
+
+            opacity: 0.6;
+        }
+
+
+        /* =================================================
+           CARDS
+        ================================================= */
+
+        .card {
+
+            background: white;
+
+            border-radius: 8px;
+
+            padding: 24px;
+
+            margin-bottom: 20px;
+
+            box-shadow:
+                0
+                2px
+                8px
+                rgba(
+                    0,
+                    0,
+                    0,
+                    0.08
+                );
+        }
+
+
+        .card h2 {
+
+            margin:
+                0
+                0
+                22px
+                0;
+
+            font-size: 25px;
+        }
+
+
+        /* =================================================
+           AGENTIC BEHAVIOR
+        ================================================= */
+
+        .agent-title {
+
+            font-size: 17px;
+
+            font-weight: bold;
+
+            margin-bottom: 10px;
+        }
+
+
+        .agent-option {
+
+            margin-bottom: 10px;
+        }
+
+
+        .agent-option:last-of-type {
+
+            margin-bottom: 14px;
+        }
+
+
+        .agent-option label {
+
+            display: flex;
+
+            align-items: center;
+
+            font-size: 17px;
+
+            cursor: pointer;
+        }
+
+
+        .agent-option input {
+
+            margin-right: 8px;
+
+            width: 14px;
+
+            height: 14px;
+        }
+
+
+        .agent-description {
+
+            margin-left: 24px;
+
+            margin-top: 2px;
+
+            color: #666;
+
+            font-size: 14px;
+        }
+
+
+        .agent-status {
+
+            background: #f1f1f1;
+
+            padding:
+                9px
+                11px;
+
+            border-radius: 4px;
+
+            font-size: 14px;
+        }
+
+
+        /* =================================================
+           ANSWER
+        ================================================= */
+
+        .answer {
+
+            white-space: pre-wrap;
+
+            line-height: 1.65;
+
+            font-size: 17px;
+        }
+
+
+        /* =================================================
+           SOURCE LIST
+        ================================================= */
+
+        .source-item {
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 15px;
+
+            background: #f3f3f3;
+
+            border-radius: 5px;
+
+            padding:
+                11px
+                12px;
+
+            margin-bottom: 10px;
+
+            font-size: 16px;
+        }
+
+
+        .source-item:last-child {
+
+            margin-bottom: 0;
+        }
+
+
+        .source-name {
+
+            min-width: 0;
+        }
+
+
+        .source-score {
+
+            flex-shrink: 0;
+
+            font-family:
+                Consolas,
+                "Courier New",
+                monospace;
+
+            font-size: 13px;
+
+            color: #555;
+        }
+
+
+        .supporting-label {
+
+            color: #555;
+
+            font-size: 13px;
+
+            margin-left: 6px;
+        }
+
+
+        .supporting-section {
+
+            margin-top: 28px;
+        }
+
+
+        .supporting-section h3 {
+
+            margin:
+                0
+                0
+                14px
+                0;
+
+            font-size: 20px;
+        }
+
+
+        .supporting-empty {
+
+            color: #666;
+
+            font-size: 15px;
+        }
+
+
+        /* =================================================
+           AGENT ACTIVITY
+        ================================================= */
+
+        .activity-item {
+
+            font-family:
+                Consolas,
+                "Courier New",
+                monospace;
+
+            font-size: 14px;
+
+            margin-bottom: 8px;
+
+            line-height: 1.5;
+        }
+
+
+        .activity-item:last-child {
+
+            margin-bottom: 0;
+        }
+
+
+        /* =================================================
+           ERROR / LOADING
+        ================================================= */
+
+        .error {
+
+            color: #a00000;
+        }
+
+
+        .loading {
+
+            color: #666;
+        }
+
+
+        /* =================================================
+           MOBILE
+        ================================================= */
+
+        @media (max-width: 700px) {
+
+            .container {
+
+                width: 94%;
+            }
+
+
+            .question-row {
+
+                flex-direction: column;
+            }
+
+
+            .ask-button {
+
+                height: 48px;
+            }
+
+
+            .source-item {
+
+                align-items: flex-start;
+
+                flex-direction: column;
+
+                gap: 5px;
+            }
+
+
+            .source-score {
+
+                align-self: flex-end;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+    <!-- =================================================
+         HEADER
+    ================================================= -->
+
+    <h1>
+        Recipe Information Agent
+    </h1>
+
+
+    <div class="subtitle">
+        Ask questions about the local recipe collection.
+    </div>
+
+
+    <!-- =================================================
+         QUESTION
+    ================================================= -->
+
+    <form id="question-form">
+
+        <div class="question-row">
+
+            <input
+                id="question"
+                class="question-input"
+                type="text"
+                placeholder="Ask a question about the recipes..."
+                autocomplete="off"
+                required
+            >
+
+
+            <button
+                id="ask-button"
+                class="ask-button"
+                type="submit"
+            >
+                Ask
+            </button>
+
+        </div>
+
+    </form>
+
+
+    <!-- =================================================
+         AGENTIC BEHAVIOR
+    ================================================= -->
+
+    <div class="card">
+
+
+        <div class="agent-title">
+            Agentic behavior
+        </div>
+
+
+        <!-- Evaluate evidence -->
+
+        <div class="agent-option">
+
+            <label>
+
+                <input
+                    type="checkbox"
+                    id="evaluate-evidence"
+                    name="evaluate_evidence"
+                >
+
+                <span>
+                    Evaluate retrieved evidence
+                </span>
+
+            </label>
+
+
+            <div class="agent-description">
+
+                The system decides whether the retrieved
+                information is sufficient to answer the question.
+
+            </div>
+
+        </div>
+
+
+        <!-- Refine query -->
+
+        <div class="agent-option">
+
+            <label>
+
+                <input
+                    type="checkbox"
+                    id="refine-query"
+                    name="refine_query"
+                >
+
+                <span>
+                    Refine the search query
+                </span>
+
+            </label>
+
+
+            <div class="agent-description">
+
+                If the evidence is insufficient, the agent
+                can reformulate the query and search again.
+
+            </div>
+
+        </div>
+
+
+        <!-- Select sources -->
+
+        <div class="agent-option">
+
+            <label>
+
+                <input
+                    type="checkbox"
+                    id="select-sources"
+                    name="select_sources"
+                >
+
+                <span>
+                    Select supporting sources
+                </span>
+
+            </label>
+
+
+            <div class="agent-description">
+
+                The agent selects which retrieved documents
+                actually support the answer.
+
+            </div>
+
+        </div>
+
+
+        <!-- Agent status -->
+
+        <div
+            id="agent-status"
+            class="agent-status"
+            style="display: none;"
+        >
+
+            Agentic behaviors enabled.
+
+        </div>
+
+
+    </div>
+
+
+    <!-- =================================================
+         ANSWER
+    ================================================= -->
+
+    <div
+        id="answer-card"
+        class="card"
+        style="display: none;"
+    >
+
+        <h2>
+            Answer
+        </h2>
+
+
+        <div
+            id="answer"
+            class="answer"
+        ></div>
+
+    </div>
+
+
+    <!-- =================================================
+         RETRIEVED SOURCES
+    ================================================= -->
+
+    <div
+        id="sources-card"
+        class="card"
+        style="display: none;"
+    >
+
+        <h2>
+            Retrieved sources
+        </h2>
+
+
+        <div id="sources"></div>
+
+
+        <!-- Supporting sources -->
+
+        <div
+            id="supporting-section"
+            class="supporting-section"
+            style="display: none;"
+        >
+
+            <h3>
+                Supporting sources selected by agent
+            </h3>
+
+
+            <div id="supporting-sources"></div>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- =================================================
+         AGENT ACTIVITY
+    ================================================= -->
+
+    <div
+        id="activity-card"
+        class="card"
+        style="display: none;"
+    >
+
+        <h2>
+            Agent activity
+        </h2>
+
+
+        <div id="activity"></div>
+
+    </div>
+
+
+</div>
+
+
+<script>
+
+
+    /* =====================================================
+       ELEMENT REFERENCES
+    ===================================================== */
+
+    const form =
+        document.getElementById(
+            "question-form"
+        );
+
+
+    const questionInput =
+        document.getElementById(
+            "question"
+        );
+
+
+    const askButton =
+        document.getElementById(
+            "ask-button"
+        );
+
+
+    const evaluateEvidence =
+        document.getElementById(
+            "evaluate-evidence"
+        );
+
+
+    const refineQuery =
+        document.getElementById(
+            "refine-query"
+        );
+
+
+    const selectSources =
+        document.getElementById(
+            "select-sources"
+        );
+
+
+    const agentStatus =
+        document.getElementById(
+            "agent-status"
+        );
+
+
+    const answerCard =
+        document.getElementById(
+            "answer-card"
+        );
+
+
+    const answerElement =
+        document.getElementById(
+            "answer"
+        );
+
+
+    const sourcesCard =
+        document.getElementById(
+            "sources-card"
+        );
+
+
+    const sourcesElement =
+        document.getElementById(
+            "sources"
+        );
+
+
+    const supportingSection =
+        document.getElementById(
+            "supporting-section"
+        );
+
+
+    const supportingSourcesElement =
+        document.getElementById(
+            "supporting-sources"
+        );
+
+
+    const activityCard =
+        document.getElementById(
+            "activity-card"
+        );
+
+
+    const activityElement =
+        document.getElementById(
+            "activity"
+        );
+
+
+    /* =====================================================
+       AGENT STATUS
+    ===================================================== */
+
+    function updateAgentStatus() {
+
+        const enabled =
+            evaluateEvidence.checked ||
+            refineQuery.checked ||
+            selectSources.checked;
+
+
+        agentStatus.style.display =
+            enabled
+                ? "block"
+                : "none";
+    }
+
+
+    evaluateEvidence.addEventListener(
+        "change",
+        updateAgentStatus
+    );
+
+
+    refineQuery.addEventListener(
+        "change",
+        updateAgentStatus
+    );
+
+
+    selectSources.addEventListener(
+        "change",
+        updateAgentStatus
+    );
+
+
+    /* =====================================================
+       ESCAPE HTML
+    ===================================================== */
+
+    function escapeHtml(value) {
+
+        if (
+            value === null ||
+            value === undefined
+        ) {
+
+            return "";
+        }
+
+
+        return String(value)
+
+            .replace(
+                /&/g,
+                "&amp;"
+            )
+
+            .replace(
+                /</g,
+                "&lt;"
+            )
+
+            .replace(
+                />/g,
+                "&gt;"
+            )
+
+            .replace(
+                /"/g,
+                "&quot;"
+            )
+
+            .replace(
+                /'/g,
+                "&#039;"
+            );
+    }
+
+
+    /* =====================================================
+       CREATE SOURCE ELEMENT
+    ===================================================== */
+
+    function createSourceElement(
+        source,
+        supporting = false
+    ) {
+
+        const item =
+            document.createElement(
+                "div"
+            );
+
+
+        item.className =
+            "source-item";
+
+
+        const left =
+            document.createElement(
+                "div"
+            );
+
+
+        left.className =
+            "source-name";
+
+
+        const sourceName =
+            source.source ||
+            source.file ||
+            source.filename ||
+            "Unknown source";
+
+
+        const section =
+            source.section ||
+            "Unknown section";
+
+
+        left.innerHTML =
+            `${escapeHtml(sourceName)}
+             — ${escapeHtml(section)}`;
+
+
+        /* ---------------------------------------------
+           Supporting marker
+        --------------------------------------------- */
+
+        if (supporting) {
+
+            const marker =
+                document.createElement(
+                    "span"
+                );
+
+
+            marker.className =
+                "supporting-label";
+
+
+            marker.textContent =
+                "✓ supporting";
+
+
+            left.appendChild(
+                marker
+            );
+        }
+
+
+        /* ---------------------------------------------
+           Similarity score
+        --------------------------------------------- */
+
+        const right =
+            document.createElement(
+                "div"
+            );
+
+
+        right.className =
+            "source-score";
+
+
+        const similarity =
+            source.similarity ??
+            source.score ??
+            source.relevance;
+
+
+        if (
+            similarity !== undefined &&
+            similarity !== null
+        ) {
+
+            right.textContent =
+                `Similarity: ${
+                    Number(similarity).toFixed(3)
+                }`;
+
+        } else {
+
+            right.textContent =
+                "Similarity: —";
+        }
+
+
+        item.appendChild(
+            left
+        );
+
+
+        item.appendChild(
+            right
+        );
+
+
+        return item;
+    }
+
+
+    /* =====================================================
+       DISPLAY RETRIEVED SOURCES
+    ===================================================== */
+
+    function displayRetrievedSources(
+        sources
+    ) {
+
+        sourcesElement.innerHTML =
+            "";
+
+
+        if (
+            !sources ||
+            sources.length === 0
+        ) {
+
+            const empty =
+                document.createElement(
+                    "div"
+                );
+
+
+            empty.className =
+                "supporting-empty";
+
+
+            empty.textContent =
+                "No sources retrieved.";
+
+
+            sourcesElement.appendChild(
+                empty
+            );
+
+
+            return;
+        }
+
+
+        sources.forEach(
+            source => {
+
+                sourcesElement.appendChild(
+                    createSourceElement(
+                        source,
+                        source.supporting === true
+                    )
+                );
+
+            }
+        );
+    }
+
+
+    /* =====================================================
+       DISPLAY SUPPORTING SOURCES
+    ===================================================== */
+
+    function displaySupportingSources(
+        supportingSources
+    ) {
+
+        supportingSourcesElement.innerHTML =
+            "";
+
+
+        if (
+            !supportingSources ||
+            supportingSources.length === 0
+        ) {
+
+            const empty =
+                document.createElement(
+                    "div"
+                );
+
+
+            empty.className =
+                "supporting-empty";
+
+
+            empty.textContent =
+                "No additional supporting sources. " +
+                "Selected sources already appear above " +
+                "with ✓ supporting.";
+
+
+            supportingSourcesElement.appendChild(
+                empty
+            );
+
+
+            return;
+        }
+
+
+        supportingSources.forEach(
+            source => {
+
+                supportingSourcesElement.appendChild(
+                    createSourceElement(
+                        source,
+                        true
+                    )
+                );
+
+            }
+        );
+    }
+
+
+    /* =====================================================
+       DISPLAY AGENT ACTIVITY
+    ===================================================== */
+
+    function displayActivity(
+        activity
+    ) {
+
+        activityElement.innerHTML =
+            "";
+
+
+        if (
+            !activity ||
+            activity.length === 0
+        ) {
+
+            activityCard.style.display =
+                "none";
+
+
+            return;
+        }
+
+
+        activity.forEach(
+            item => {
+
+                const element =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                element.className =
+                    "activity-item";
+
+
+                /* -----------------------------------------
+                   Plain string
+                ----------------------------------------- */
+
+                if (
+                    typeof item === "string"
+                ) {
+
+                    element.textContent =
+                        item;
+
+                }
+
+
+                /* -----------------------------------------
+                   Backend attempt object
+                ----------------------------------------- */
+
+                else {
+
+                    const attempt =
+                        item.attempt ??
+                        "";
+
+
+                    const query =
+                        item.query ??
+                        item.search_query ??
+                        "";
+
+
+                    /*
+                     * IMPORTANT:
+                     *
+                     * app.py returns:
+                     *
+                     * sufficient: true / false
+                     *
+                     * It does NOT return
+                     * decision or result.
+                     */
+
+                    let decision =
+                        "";
+
+
+                    if (
+                        item.sufficient === true
+                    ) {
+
+                        decision =
+                            "evidence sufficient";
+
+                    }
+
+                    else if (
+                        item.sufficient === false
+                    ) {
+
+                        decision =
+                            "evidence insufficient";
+
+                    }
+
+                    else if (
+                        item.decision !== undefined
+                    ) {
+
+                        decision =
+                            item.decision;
+
+                    }
+
+                    else if (
+                        item.result !== undefined
+                    ) {
+
+                        decision =
+                            item.result;
+
+                    }
+
+
+                    if (
+                        attempt !== ""
+                    ) {
+
+                        element.textContent =
+                            `Attempt ${attempt}: ` +
+                            `search "${query}" → ` +
+                            `${decision}`;
+
+                    }
+
+                    else {
+
+                        element.textContent =
+                            `${query} → ${decision}`;
+                    }
+
+                }
+
+
+                activityElement.appendChild(
+                    element
+                );
+
+            }
+        );
+
+
+        activityCard.style.display =
+            "block";
+    }
+
+
+    /* =====================================================
+       GET SUPPORTING SOURCES
+    ===================================================== */
+
+    function getSupportingSources(
+        data
+    ) {
+
+        return (
+            data.supporting_sources ||
+            data.selected_sources ||
+            data.sources_selected_by_agent ||
+            []
+        );
+    }
+
+
+    /* =====================================================
+       GET RETRIEVED SOURCES
+    ===================================================== */
+
+    function getRetrievedSources(
+        data
+    ) {
+
+        return (
+            data.retrieved_sources ||
+            data.sources ||
+            data.results ||
+            []
+        );
+    }
+
+
+    /* =====================================================
+       GET AGENT ACTIVITY
+    ===================================================== */
+
+    function getAgentActivity(
+        data
+    ) {
+
+        /*
+         * Current app.py returns:
+         *
+         * "attempts": [...]
+         *
+         * Older versions may have returned:
+         *
+         * "agent_activity"
+         * "activity"
+         */
+
+        return (
+            data.attempts ||
+            data.agent_activity ||
+            data.activity ||
+            []
+        );
+    }
+
+
+    /* =====================================================
+       SUBMIT QUESTION
+    ===================================================== */
+
+    form.addEventListener(
+        "submit",
+        async function(event) {
+
+            event.preventDefault();
+
+
+            const question =
+                questionInput.value.trim();
+
+
+            if (!question) {
+
+                return;
+            }
+
+
+            /* ---------------------------------------------
+               Read selected behaviors
+            --------------------------------------------- */
+
+            const evidenceEvaluation =
+                evaluateEvidence.checked;
+
+
+            const queryRefinement =
+                refineQuery.checked;
+
+
+            const sourceSelection =
+                selectSources.checked;
+
+
+            /* ---------------------------------------------
+               UI state
+            --------------------------------------------- */
+
+            askButton.disabled =
+                true;
+
+
+            askButton.textContent =
+                "Thinking...";
+
+
+            answerCard.style.display =
+                "block";
+
+
+            answerElement.textContent =
+                "Processing your question...";
+
+
+            sourcesCard.style.display =
+                "none";
+
+
+            supportingSection.style.display =
+                "none";
+
+
+            activityCard.style.display =
+                "none";
+
+
+            try {
+
+                /* -----------------------------------------
+                   Send request to FastAPI
+                   ----------------------------------------- */
+
+                const response =
+                    await fetch(
+                        "/ask",
+                        {
+
+                            method:
+                                "POST",
+
+                            headers:
+                                {
+                                    "Content-Type":
+                                        "application/json"
+                                },
+
+                            body:
+                                JSON.stringify(
+                                    {
+
+                                        question:
+                                            question,
+
+                                        /*
+                                         * These names now exactly
+                                         * match QuestionRequest
+                                         * in app.py.
+                                         */
+
+                                        evidence_evaluation:
+                                            evidenceEvaluation,
+
+                                        query_refinement:
+                                            queryRefinement,
+
+                                        source_selection:
+                                            sourceSelection
+
+                                    }
+                                )
+
+                        }
+                    );
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        `Server returned ${response.status}`
+                    );
+                }
+
+
+                const data =
+                    await response.json();
+
+
+                /* -----------------------------------------
+                   ANSWER
+                ----------------------------------------- */
+
+                answerElement.textContent =
+                    data.answer ||
+                    "No answer was returned.";
+
+
+                answerCard.style.display =
+                    "block";
+
+
+                /* -----------------------------------------
+                   RETRIEVED SOURCES
+                ----------------------------------------- */
+
+                const retrievedSources =
+                    getRetrievedSources(
+                        data
+                    );
+
+
+                displayRetrievedSources(
+                    retrievedSources
+                );
+
+
+                sourcesCard.style.display =
+                    "block";
+
+
+                /* -----------------------------------------
+                   SUPPORTING SOURCES
+                ----------------------------------------- */
+
+                const supportingSources =
+                    getSupportingSources(
+                        data
+                    );
+
+
+                if (
+                    selectSources.checked ||
+                    supportingSources.length > 0
+                ) {
+
+                    displaySupportingSources(
+                        supportingSources
+                    );
+
+
+                    supportingSection.style.display =
+                        "block";
+
+                }
+
+                else {
+
+                    supportingSection.style.display =
+                        "none";
+                }
+
+
+                /* -----------------------------------------
+                   AGENT ACTIVITY
+                ----------------------------------------- */
+
+                const activity =
+                    getAgentActivity(
+                        data
+                    );
+
+
+                displayActivity(
+                    activity
+                );
+
+            }
+
+
+            catch (error) {
+
+                console.error(
+                    error
+                );
+
+
+                answerElement.textContent =
+                    "An error occurred while contacting " +
+                    "the agent.\n\n" +
+                    error.message;
+
+
+                answerCard.style.display =
+                    "block";
+
+
+                sourcesCard.style.display =
+                    "none";
+
+
+                activityCard.style.display =
+                    "none";
+
+            }
+
+
+            finally {
+
+                askButton.disabled =
+                    false;
+
+
+                askButton.textContent =
+                    "Ask";
+            }
+
+        }
+    );
+
+
+    /* =====================================================
+       INITIAL STATE
+    ===================================================== */
+
+    updateAgentStatus();
+
+
+</script>
+
+
+</body>
+
+</html>
