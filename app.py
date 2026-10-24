@@ -1,6 +1,9 @@
 import json
 import math
 import re
+import logging
+import time
+from functools import wraps
 
 import ollama
 from fastapi import FastAPI
@@ -25,6 +28,47 @@ MAX_SEARCH_ATTEMPTS = 3
 # The evidence evaluator is deliberately limited to the
 # same three sources that the user sees in the UI.
 DISPLAY_RESULTS = 3
+
+# Console logging for live visibility into retrieval and LLM work.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    datefmt="%H:%M:%S",
+)
+logger = logging.getLogger("recipe_agent")
+
+
+def timed_chat(stage, **kwargs):
+    """Run an Ollama chat call and log its duration."""
+    started = time.perf_counter()
+    logger.info("LLM START | %s | model=%s", stage, kwargs.get("model", LLM_MODEL))
+    try:
+        response = ollama.chat(**kwargs)
+        elapsed = time.perf_counter() - started
+        logger.info("LLM DONE  | %s | %.2f sec", stage, elapsed)
+        return response
+    except Exception:
+        elapsed = time.perf_counter() - started
+        logger.exception("LLM ERROR | %s | after %.2f sec", stage, elapsed)
+        raise
+
+
+def log_run_duration(func):
+    """Log total duration of an agent run, including early returns/errors."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        started = time.perf_counter()
+        logger.info("========== NEW QUESTION ==========")
+        try:
+            result = func(*args, **kwargs)
+            logger.info("AGENT DONE | total=%.2f sec", time.perf_counter() - started)
+            return result
+        except Exception:
+            logger.exception("AGENT ERROR | total=%.2f sec", time.perf_counter() - started)
+            raise
+        finally:
+            logger.info("========== END QUESTION ==========\n")
+    return wrapper
 
 
 # =========================================================
@@ -128,10 +172,17 @@ def retrieve(query):
         query
     )
 
-    response = ollama.embed(
-        model=EMBEDDING_MODEL,
-        input=normalized_query
-    )
+    embed_started = time.perf_counter()
+    logger.info("EMBED START | query=%r | model=%s", normalized_query, EMBEDDING_MODEL)
+    try:
+        response = ollama.embed(
+            model=EMBEDDING_MODEL,
+            input=normalized_query
+        )
+        logger.info("EMBED DONE  | %.2f sec", time.perf_counter() - embed_started)
+    except Exception:
+        logger.exception("EMBED ERROR | after %.2f sec", time.perf_counter() - embed_started)
+        raise
 
     query_embedding = response["embeddings"][0]
 
@@ -165,7 +216,15 @@ def retrieve(query):
         reverse=True
     )
 
-    return results[:DISPLAY_RESULTS]
+    top_results = results[:DISPLAY_RESULTS]
+    logger.info(
+        "RETRIEVAL DONE | top results: %s",
+        "; ".join(
+            f"{item['source']} ({item['similarity']:.3f})"
+            for item in top_results
+        ) or "no results"
+    )
+    return top_results
 
 
 # =========================================================
@@ -301,7 +360,8 @@ If none support the question:
 }}
 """
 
-    response = ollama.chat(
+    response = timed_chat(
+        "evidence evaluation",
         model=LLM_MODEL,
         messages=[
             {
@@ -461,7 +521,8 @@ If none genuinely support the question:
 }}
 """
 
-    verification_response = ollama.chat(
+    verification_response = timed_chat(
+        "final evidence verification",
         model=LLM_MODEL,
         messages=[
             {
@@ -581,7 +642,8 @@ Previous retrieved information:
 {context}
 """
 
-    response = ollama.chat(
+    response = timed_chat(
+        "query reformulation",
         model=LLM_MODEL,
         messages=[
             {
@@ -670,7 +732,8 @@ SUPPORTING RECIPE SOURCES:
 {context}
 """
 
-    response = ollama.chat(
+    response = timed_chat(
+        "final answer generation",
         model=LLM_MODEL,
         messages=[
             {
@@ -823,6 +886,7 @@ def build_supporting_sources(
 # Run agent
 # =========================================================
 
+@log_run_duration
 def run_agent(
     question,
     evidence_evaluation,
@@ -830,6 +894,11 @@ def run_agent(
     source_selection
 ):
 
+    logger.info("QUESTION | %s", question)
+    logger.info(
+        "OPTIONS | evidence_evaluation=%s, query_refinement=%s, source_selection=%s",
+        evidence_evaluation, query_refinement, source_selection
+    )
     current_query = question
 
     attempts = []
@@ -849,6 +918,7 @@ def run_agent(
         1,
         MAX_SEARCH_ATTEMPTS + 1
     ):
+        logger.info("SEARCH ATTEMPT %d/%d | query=%r", attempt, MAX_SEARCH_ATTEMPTS, current_query)
 
         # -------------------------------------------------
         # Retrieve the same top 3 sources shown to the user.
@@ -875,7 +945,7 @@ def run_agent(
 
 
         if needs_source_evaluation:
-
+            logger.info("EVIDENCE CHECK | evaluating retrieved sources")
             supporting_results = evaluate_sources(
                 question,
                 results
@@ -938,6 +1008,11 @@ def run_agent(
         # Evidence sufficient
         # -------------------------------------------------
 
+        logger.info(
+            "EVIDENCE RESULT | sufficient=%s | supporting_sources=%d",
+            sufficient, len(supporting_results)
+        )
+
         if sufficient:
 
             evidence_sufficient = True
@@ -974,10 +1049,12 @@ def run_agent(
         # Reformulate query
         # -------------------------------------------------
 
+        logger.info("QUERY REFINEMENT | asking LLM for an alternative query")
         current_query = reformulate_query(
             question,
             context
         )
+        logger.info("QUERY REFINED | new query=%r", current_query)
 
 
     # =====================================================
@@ -1024,6 +1101,7 @@ def run_agent(
     # =====================================================
 
     if source_selection:
+        logger.info("ANSWER MODE | using only verified supporting sources")
 
         if not final_supporting_results:
 
@@ -1069,7 +1147,7 @@ def run_agent(
     # =====================================================
 
     else:
-
+        logger.info("ANSWER MODE | using top retrieved sources")
         final_answer = generate_answer(
             question,
             final_results
