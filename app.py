@@ -24,9 +24,10 @@ LLM_MODEL = "llama3.1:8b"
 # refinement is enabled.
 MAX_SEARCH_ATTEMPTS = 3
 
-# Number of sources retrieved and evaluated.
-# The evidence evaluator is deliberately limited to the
-# same three sources that the user sees in the UI.
+# Retrieve and evaluate up to eight candidate sections.
+# The UI displays only the top three, plus any supporting
+# candidates found below rank three.
+RETRIEVAL_RESULTS = 8
 DISPLAY_RESULTS = 3
 
 # Console logging for live visibility into retrieval and LLM work.
@@ -216,15 +217,17 @@ def retrieve(query):
         reverse=True
     )
 
-    top_results = results[:DISPLAY_RESULTS]
+    candidate_results = results[:RETRIEVAL_RESULTS]
     logger.info(
-        "RETRIEVAL DONE | top results: %s",
+        "RETRIEVAL DONE | candidates=%d | top %d: %s",
+        len(candidate_results),
+        min(DISPLAY_RESULTS, len(candidate_results)),
         "; ".join(
             f"{item['source']} ({item['similarity']:.3f})"
-            for item in top_results
+            for item in candidate_results[:DISPLAY_RESULTS]
         ) or "no results"
     )
-    return top_results
+    return candidate_results
 
 
 # =========================================================
@@ -273,7 +276,7 @@ def evaluate_sources(
     A second LLM verification step then checks whether the quoted text
     genuinely supports the user's question.
 
-    Only the three displayed retrieval results are eligible.
+    All retrieved candidate sections are eligible, including candidates not displayed in the top three.
     """
 
     context = format_context(results)
@@ -292,7 +295,7 @@ RETRIEVED SOURCES:
 
 STRICT RULES:
 
-1. Evaluate ONLY the three sources shown above.
+1. Evaluate ONLY the retrieved sources shown above. There may be up to eight.
 
 2. Judge the actual source text, not semantic similarity.
 
@@ -323,7 +326,7 @@ STRICT RULES:
 12. If you cannot provide a direct supporting quote, do not select the
     source.
 
-13. If none of the three sources directly support the question, return
+13. If none of the retrieved sources directly support the question, return
     an empty list.
 
 EXAMPLE 1:
@@ -921,7 +924,8 @@ def run_agent(
         logger.info("SEARCH ATTEMPT %d/%d | query=%r", attempt, MAX_SEARCH_ATTEMPTS, current_query)
 
         # -------------------------------------------------
-        # Retrieve the same top 3 sources shown to the user.
+        # Retrieve up to eight candidates. The UI later shows
+        # only the top three, plus supporting candidates below rank 3.
         # -------------------------------------------------
 
         results = retrieve(
